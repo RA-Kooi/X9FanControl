@@ -1,0 +1,11 @@
+# Visual Studio
+.vs
+.vscode
+
+# dotnet
+bin
+obj
+Properties
+
+# vim
+*.swp
