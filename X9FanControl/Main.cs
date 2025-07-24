@@ -5,6 +5,7 @@ using System.IO;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 class Program
 {
@@ -55,6 +56,11 @@ class Program
 			return 1;
 
 		IHost host = new HostBuilder()
+			.ConfigureLogging(logger =>
+			{
+				logger.AddConsole();
+				logger.SetMinimumLevel(LogLevel.Debug);
+			})
 			.ConfigureServices((hostContext, services) => services.AddHostedService<Lifetime>())
 			.UseConsoleLifetime()
 			.Build();

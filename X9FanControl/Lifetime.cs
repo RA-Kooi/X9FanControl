@@ -5,16 +5,21 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 class Lifetime: IHostedService
 {
 	private bool stop;
+	private readonly ILogger<Lifetime> log;
 	private readonly IHostApplicationLifetime appLifetime;
 	private Task? mainLoop;
 
-	public Lifetime(IHostApplicationLifetime appLifetime)
+	public Lifetime(
+		ILogger<Lifetime> logger,
+		IHostApplicationLifetime appLifetime)
 	{
 		this.stop = false;
+		log = logger;
 		this.appLifetime = appLifetime;
 		this.mainLoop = null;
 	}
@@ -25,7 +30,7 @@ class Lifetime: IHostedService
 		{
 			while(!stop)
 			{
-				Console.WriteLine("Sleeping...");
+				log.LogInformation("Sleeping...");
 				await Task.Delay(5000);
 			}
 		});
@@ -35,7 +40,7 @@ class Lifetime: IHostedService
 
 	public async Task StopAsync(CancellationToken _)
 	{
-		Console.WriteLine("Exiting...");
+		log.LogInformation("Exiting...");
 
 		stop = true;
 		await mainLoop!;
