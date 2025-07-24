@@ -3,6 +3,9 @@ namespace X9FanControl;
 using System;
 using System.IO;
 
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
 class Program
 {
 	static string? FindProgram(string[] paths, string program)
@@ -50,6 +53,13 @@ class Program
 
 		if(error)
 			return 1;
+
+		IHost host = new HostBuilder()
+			.ConfigureServices((hostContext, services) => services.AddHostedService<Lifetime>())
+			.UseConsoleLifetime()
+			.Build();
+
+		host.Run();
 
 		return 0;
 	}
