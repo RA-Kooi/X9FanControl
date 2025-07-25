@@ -4,14 +4,13 @@ static class Config
 {
 	// in celsius
 	public const int maxCPUTemp            = 80;
-	public const int minCPUTemp            = -5;
+	public const int targetCPUTemp         = 50;
 
 	public const int maxHDDTemp            = 60;
-	public const int minHDDTemp            =  5;
-	public const int targetHDDTemp         = 45;
+	public const int targetHDDTemp         = 40;
 
-	public const int maxHBATemp            = 55;
-	public const int minHBATemp            =  0;
+	public const int maxHBATemp            = 60;
+	public const int targetHBATemp         = 53;
 
 	public const int taskDelay             =  5; // in seconds
 
