@@ -19,7 +19,7 @@ class Lifetime: IHostedService, IDisposable
 	private readonly IHostApplicationLifetime appLifetime;
 	private LifetimeConfig config;
 	private CancellationTokenSource? cancelSource;
-	private Task? sensorTask, hddTask;
+	private Task? sensorTask, hddTask, cpuTask;
 
 	public Lifetime(
 		ILogger<Lifetime> logger,
@@ -32,6 +32,7 @@ class Lifetime: IHostedService, IDisposable
 		cancelSource = null;
 		sensorTask = null;
 		hddTask = null;
+		cpuTask = null;
 	}
 
 	public Task StartAsync(CancellationToken _)
@@ -66,6 +67,14 @@ class Lifetime: IHostedService, IDisposable
 			hddTask = hddMonitor.Run(cancelSource.Token);
 			hddTask.ContinueWith(OnError, TaskContinuationOptions.OnlyOnFaulted);
 
+			CPUMonitor cpuMonitor = new(
+				log,
+				ipmiMonitor,
+				config.lsiUtil);
+
+			cpuTask = cpuMonitor.Run(cancelSource.Token);
+			cpuTask.ContinueWith(OnError, TaskContinuationOptions.OnlyOnFaulted);
+
 			log.LogInformation("Started");
 		});
 
@@ -75,6 +84,7 @@ class Lifetime: IHostedService, IDisposable
 
 			sensorTask!.Wait();
 			hddTask!.Wait();
+			cpuTask!.Wait();
 
 			// TODO: Set fans to full
 		});
