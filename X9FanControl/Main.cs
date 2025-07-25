@@ -55,13 +55,26 @@ class Program
 		if(error)
 			return 1;
 
+		Action<HostBuilderContext, IServiceCollection> lifeTime =
+			(hostContext, services) =>
+			{
+				services.Configure<LifetimeConfig>(c =>
+				{
+					c.lsScsi = lsScsi!;
+					c.hddTemp = hddTemp!;
+					c.lsiUtil = lsiUtil!;
+					c.ipmiTool = ipmiTool!;
+				});
+				services.AddHostedService<Lifetime>();
+			};
+
 		IHost host = new HostBuilder()
 			.ConfigureLogging(logger =>
 			{
 				logger.AddConsole();
 				logger.SetMinimumLevel(LogLevel.Debug);
 			})
-			.ConfigureServices((hostContext, services) => services.AddHostedService<Lifetime>())
+			.ConfigureServices(lifeTime)
 			.UseConsoleLifetime()
 			.Build();
 

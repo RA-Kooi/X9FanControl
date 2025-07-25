@@ -6,18 +6,27 @@ using System.Threading.Tasks;
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+class LifetimeConfig
+{
+	public required string lsScsi, hddTemp, lsiUtil, ipmiTool;
+}
 
 class Lifetime: IHostedService
 {
 	private readonly ILogger<Lifetime> log;
 	private readonly IHostApplicationLifetime appLifetime;
+	private LifetimeConfig config;
 
 	public Lifetime(
 		ILogger<Lifetime> logger,
-		IHostApplicationLifetime appLifetime)
+		IHostApplicationLifetime appLifetime,
+		IOptions<LifetimeConfig> options)
 	{
 		log = logger;
 		this.appLifetime = appLifetime;
+		this.config = options.Value;
 	}
 
 	public Task StartAsync(CancellationToken _)
