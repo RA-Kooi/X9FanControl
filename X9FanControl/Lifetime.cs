@@ -13,11 +13,12 @@ class LifetimeConfig
 	public required string lsScsi, hddTemp, lsiUtil, ipmiTool;
 }
 
-class Lifetime: IHostedService
+class Lifetime: IHostedService, IDisposable
 {
 	private readonly ILogger<Lifetime> log;
 	private readonly IHostApplicationLifetime appLifetime;
 	private LifetimeConfig config;
+	private CancellationTokenSource? cancelSource;
 	private Task? sensorTask;
 
 	public Lifetime(
@@ -28,7 +29,8 @@ class Lifetime: IHostedService
 		log = logger;
 		this.appLifetime = appLifetime;
 		this.config = options.Value;
-		this.sensorTask = null;
+		cancelSource = null;
+		sensorTask = null;
 	}
 
 	public Task StartAsync(CancellationToken _)
@@ -40,10 +42,13 @@ class Lifetime: IHostedService
 
 		appLifetime.ApplicationStarted.Register(() =>
 		{
+			cancelSource = CancellationTokenSource
+				.CreateLinkedTokenSource(appLifetime.ApplicationStopping);
+
 			AsyncLock ipmiLock = new();
 
 			IPMIMonitor ipmiMonitor = new(log, ipmiLock, config.ipmiTool);
-			sensorTask = ipmiMonitor.Run(appLifetime.ApplicationStopping);
+			sensorTask = ipmiMonitor.Run(cancelSource.Token);
 			sensorTask.ContinueWith(OnError, TaskContinuationOptions.OnlyOnFaulted);
 
 			log.LogInformation("Started");
@@ -67,4 +72,9 @@ class Lifetime: IHostedService
 	}
 
 	public Task StopAsync(CancellationToken _) => Task.CompletedTask;
+
+	public void Dispose()
+	{
+		cancelSource?.Dispose();
+	}
 }
