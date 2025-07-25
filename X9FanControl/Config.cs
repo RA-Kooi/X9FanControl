@@ -19,6 +19,9 @@ static class Config
 	public const string CPUZone            = "0x11";
 	public const int fanStep               = 0x8;
 
+	public const int HDDInitSpeed          =  64; // duty cycle passed to ipmitool
 	public const int HDDZoneTargetRPM      = 825;
+	public const int HDDDelta              = 100;
+
 	public const int CPUZoneTargetRPM      = 800;
 }

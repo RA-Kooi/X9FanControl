@@ -22,6 +22,9 @@ class Program
 
 	static int Main(string[] args)
 	{
+		if(Config.HDDInitSpeed % Config.fanStep != 0)
+			throw new ApplicationException("HDDInitSpeed must be a multiple of fanSpeed");
+
 		string path = Environment.GetEnvironmentVariable("PATH")!;
 		string[] paths = path.Split(':', StringSplitOptions.RemoveEmptyEntries);
 
