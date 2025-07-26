@@ -22,7 +22,7 @@ static class Config
 
 	public const int CPUInitSpeed          =  96; // duty cycle passed to ipmitool
 	public const int CPUZoneTargetRPM      = 750;
-	public const int CPUDelta              =  25;
+	public const int CPUDelta              =  50;
 
 	public const string HDDZone            = "0x10";
 	public const string CPUZone            = "0x11";

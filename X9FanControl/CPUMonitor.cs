@@ -3,6 +3,7 @@ using X9FanControl;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,41 +13,57 @@ class CPUMonitor
 {
 	private readonly ILogger<Lifetime> log;
 	private readonly IPMIMonitor ipmiMonitor;
-	private string lsiUtil;
-	private int fanSpeed = Config.CPUInitSpeed;
+	private readonly AsyncLock ipmiLock;
+	private string lsiUtil, ipmiTool;
 
 	public CPUMonitor(
 		ILogger<Lifetime> logger,
 		IPMIMonitor monitor,
-		string lsi)
+		AsyncLock ipmiLock,
+		string lsi,
+		string ipmi)
 	{
 		log = logger;
 		ipmiMonitor = monitor;
+		this.ipmiLock = ipmiLock;
 		lsiUtil = lsi;
+		ipmiTool = ipmi;
 	}
 
 	public async Task Run(CancellationToken c)
 	{
+		int fanSpeed = Config.CPUInitSpeed;
+
 		int hbaCount = await HBACount();
 		bool hasHBA = hbaCount > 0;
+		int hbaTimer = 30, lastHBATemp = -200;
+		bool rampForHBA = false, hbaIsRising;
+
+		int lastCpuTemp = -200;
+		bool cpuIsRising;
 
 		while(!c.IsCancellationRequested)
 		{
 			int hbaTemp = hasHBA ? await HBATemp(hbaCount) : 0;
-			SensorData sensors = ipmiMonitor.SensorData;
+			hbaIsRising = hbaTemp > lastHBATemp;
 
+			SensorData sensors = ipmiMonitor.SensorData;
 			int cpuTemp = sensors.CPUTemp;
 			int cpuFan = sensors.CPUZoneRPM;
+			cpuIsRising = cpuTemp > lastCpuTemp;
 
 			log.LogDebug($"CPU: {cpuTemp}°C\nHBA: {hbaTemp}°C");
 
-			bool aggressiveRampUp = cpuTemp > Config.maxCPUTemp;
-			if(!aggressiveRampUp)
+			bool aggressiveRampUp = cpuTemp > Config.maxCPUTemp && cpuIsRising;
+			if(!aggressiveRampUp && hbaTimer <= 0)
 				aggressiveRampUp = hasHBA ? hbaTemp > Config.maxHBATemp : false;
 
-			bool rampUp = cpuTemp > Config.targetCPUTemp;
-			if(!rampUp)
-				rampUp = hasHBA ? hbaTemp > Config.targetHBATemp : false;
+			bool rampUp = cpuTemp > Config.targetCPUTemp && cpuIsRising;
+			if(!rampUp && hbaTimer <= 0)
+			{
+				rampForHBA = hbaTemp > Config.targetHBATemp && hbaIsRising;
+				rampUp = hasHBA ? rampForHBA : false;
+			}
 
 			int fanDelta = cpuFan - Config.CPUZoneTargetRPM;
 			rampUp = fanDelta < 0 ? true : rampUp;
@@ -54,8 +71,10 @@ class CPUMonitor
 			int newSpeed = fanSpeed;
 			if(rampUp)
 				newSpeed += Config.fanStep * (1 + 2 * aggressiveRampUp.ToInt());
-			else if(fanDelta >= Config.CPUDelta)
+			else if(fanDelta >= Config.CPUDelta && !rampForHBA)
 				newSpeed -= Config.fanStep;
+
+			log.LogDebug($"Delta: {fanDelta}, config delta: {Config.CPUDelta}");
 
 			newSpeed = Math.Min(0x100, newSpeed);
 
@@ -69,9 +88,39 @@ class CPUMonitor
 				log.LogInformation(
 					$"Setting CPU Zone duty cycle to {hexSpeed} "
 					+ $"({(float)writeSpeed / 2.55f}%)");
+
+				await ipmiLock.Lock(async () =>
+				{
+					ProcessStartInfo pInfo = new(ipmiTool);
+					Config.ipmiSetFanSpeed.All(x =>
+					{
+						pInfo.ArgumentList.Add(x);
+						return true;
+					});
+					pInfo.ArgumentList.Add(Config.CPUZone);
+					pInfo.ArgumentList.Add($"0x{writeSpeed:X}");
+
+					Process? proc = Process.Start(pInfo);
+					if(proc == null)
+						throw new ApplicationException("Error executing ipmiTool");
+
+					await proc.WaitForExitAsync();
+
+					if(proc.ExitCode != 0)
+						throw new ApplicationException("Error executing ipmiTool");
+				});
 			}
 
+			lastCpuTemp = cpuTemp;
+
 			await Task.Delay(Config.taskDelay * 1000);
+
+			hbaTimer -= Config.taskDelay;
+			if(hbaTimer < -Config.taskDelay)
+			{
+				hbaTimer = 30;
+				lastHBATemp = hbaTemp;
+			}
 		}
 	}
 

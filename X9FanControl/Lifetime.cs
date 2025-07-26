@@ -143,7 +143,9 @@ class Lifetime: IHostedService, IDisposable
 			CPUMonitor cpuMonitor = new(
 				log,
 				ipmiMonitor,
-				config.lsiUtil);
+				ipmiLock,
+				config.lsiUtil,
+				config.ipmiTool);
 
 			cpuTask = cpuMonitor.Run(cancelSource.Token);
 			cpuTask.ContinueWith(OnError, TaskContinuationOptions.OnlyOnFaulted);
