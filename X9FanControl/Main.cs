@@ -26,6 +26,7 @@ class Program
 	{
 		cap_ng.CapngClear(CapngSelectT.CAPNG_SELECT_BOTH);
 
+		/*
 		cap_ng.CapngUpdate(
 			CapngActT.CAPNG_ADD,
 			CapngTypeT.CAPNG_EFFECTIVE | CapngTypeT.CAPNG_PERMITTED,
@@ -35,6 +36,7 @@ class Program
 			CapngActT.CAPNG_ADD,
 			CapngTypeT.CAPNG_EFFECTIVE | CapngTypeT.CAPNG_PERMITTED,
 			(uint)Capabilities.DAC_READ_SEARCH);
+		*/
 
 		cap_ng.CapngUpdate(
 			CapngActT.CAPNG_ADD,
