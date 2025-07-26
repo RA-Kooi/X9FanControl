@@ -41,6 +41,7 @@ class Lifetime: IHostedService, IDisposable
 	{
 		Action<Task> OnError = (_) =>
 		{
+			Environment.ExitCode = 1;
 			appLifetime.StopApplication();
 		};
 
