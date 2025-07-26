@@ -14,25 +14,32 @@ class HDDMonitor
 {
 	private readonly ILogger<Lifetime> log;
 	private readonly IPMIMonitor ipmiMonitor;
-	private string lsScsi, hddTemp, lsiUtil;
-	private int fanSpeed = Config.HDDInitSpeed;
+	private readonly AsyncLock ipmiLock;
+	private string lsScsi, hddTemp, lsiUtil, ipmiTool;
 
 	public HDDMonitor(
 		ILogger<Lifetime> logger,
 		IPMIMonitor monitor,
+		AsyncLock ipmiLock,
 		string lsScsi,
 		string hddTemp,
-		string lsiUtil)
+		string lsiUtil,
+		string ipmiTool)
 	{
 		log = logger;
 		ipmiMonitor = monitor;
+		this.ipmiLock = ipmiLock;
 		this.lsiUtil = lsiUtil;
 		this.hddTemp = hddTemp;
 		this.lsScsi = lsScsi;
+		this.ipmiTool = ipmiTool;
 	}
 
 	public async Task Run(CancellationToken c)
 	{
+		int fanSpeed = Config.HDDInitSpeed;
+		int lastTemp = -200;
+
 		while(!c.IsCancellationRequested)
 		{
 			List<string> HDDs = await DiscoverHDDs();
@@ -48,8 +55,9 @@ class HDDMonitor
 			int hddTemp = temps.Max();
 			int hddFan = sensors.HDDZoneRPM;
 
-			bool aggressiveRampUp = hddTemp > Config.maxHDDTemp;
-			bool rampUp = hddTemp > Config.targetHDDTemp;
+			bool isRising = hddTemp > lastTemp;
+			bool aggressiveRampUp = hddTemp > Config.maxHDDTemp && isRising;
+			bool rampUp = hddTemp > Config.targetHDDTemp && isRising;
 
 			int fanDelta = hddFan - Config.HDDZoneTargetRPM;
 			rampUp = fanDelta < 0 ? true : rampUp;
@@ -72,7 +80,30 @@ class HDDMonitor
 				log.LogInformation(
 					$"Setting HDD Zone duty cycle to {hexSpeed} "
 					+ $"({(float)writeSpeed / 2.55f}%)");
+
+				await ipmiLock.Lock(async () =>
+				{
+					ProcessStartInfo pInfo = new(ipmiTool);
+					Config.ipmiSetFanSpeed.All(x =>
+					{
+						pInfo.ArgumentList.Add(x);
+						return true;
+					});
+					pInfo.ArgumentList.Add(Config.CPUZone);
+					pInfo.ArgumentList.Add($"0x{writeSpeed:X}");
+
+					Process? proc = Process.Start(pInfo);
+					if(proc == null)
+						throw new ApplicationException("Error executing ipmiTool");
+
+					await proc.WaitForExitAsync();
+
+					if(proc.ExitCode != 0)
+						throw new ApplicationException("Error executing ipmiTool");
+				});
 			}
+
+			lastTemp = hddTemp;
 
 			await Task.Delay(Config.taskDelay * 1000);
 		}

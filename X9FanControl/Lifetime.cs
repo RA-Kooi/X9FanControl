@@ -131,9 +131,11 @@ class Lifetime: IHostedService, IDisposable
 			HDDMonitor hddMonitor = new(
 				log,
 				ipmiMonitor,
+				ipmiLock,
 				config.lsScsi,
 				config.hddTemp,
-				config.lsiUtil);
+				config.lsiUtil,
+				config.ipmiTool);
 
 			hddTask = hddMonitor.Run(cancelSource.Token);
 			hddTask.ContinueWith(OnError, TaskContinuationOptions.OnlyOnFaulted);
