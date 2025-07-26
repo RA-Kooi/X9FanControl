@@ -1,6 +1,8 @@
 namespace X9FanControl;
 
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -44,6 +46,75 @@ class Lifetime: IHostedService, IDisposable
 
 		appLifetime.ApplicationStarted.Register(() =>
 		{
+			log.LogInformation("Starting...");
+
+			Func<ProcessStartInfo, Func<string, bool>> addArgs = p =>
+			{
+				return x =>
+				{
+					p.ArgumentList.Add(x);
+					return true;
+				};
+			};
+
+			ProcessStartInfo pInfo = new(config.ipmiTool);
+			pInfo.RedirectStandardOutput = true;
+			Config.ipmiGetFanMode.All(addArgs(pInfo));
+
+			Process? proc = Process.Start(pInfo);
+			if(proc == null)
+				throw new ApplicationException("Error executing ipmitool, not root?");
+
+			proc.WaitForExit();
+
+			if(proc.ExitCode != 0)
+				throw new ApplicationException("Error executing ipmitool, not root?");
+
+			if(proc.StandardOutput.ReadLine()!.Trim() != Config.ipmiFanModeFull)
+			{
+				pInfo.ArgumentList.Clear();
+				Config.ipmiSetFanModeFull.All(addArgs(pInfo));
+
+				log.LogInformation("Setting fan mode to full");
+
+				proc = Process.Start(pInfo);
+				if(proc == null)
+					throw new ApplicationException("Error executing ipmitool");
+
+				proc.WaitForExit();
+
+				if(proc.ExitCode != 0)
+					throw new ApplicationException("Error executing ipmitool");
+			}
+
+			pInfo.ArgumentList.Clear();
+			Config.ipmiSetFanSpeed.All(addArgs(pInfo));
+			pInfo.ArgumentList.Add("");
+			pInfo.ArgumentList.Add("");
+
+			log.LogInformation("Setting initial fan duty cycles");
+
+			foreach(string zone in new[]{Config.HDDZone, Config.CPUZone})
+			{
+				int idx = Config.ipmiSetFanSpeed.Length;
+				pInfo.ArgumentList[idx] = zone;
+
+				int speed = zone == Config.HDDZone
+					? Config.HDDInitSpeed
+					: Config.CPUInitSpeed;
+
+				pInfo.ArgumentList[idx + 1] = $"0x{speed:X}";
+
+				proc = Process.Start(pInfo);
+				if(proc == null)
+					throw new ApplicationException("Error executing ipmitool");
+
+				proc.WaitForExit();
+
+				if(proc.ExitCode != 0)
+					throw new ApplicationException("Error executing ipmitool");
+			}
+
 			cancelSource = CancellationTokenSource
 				.CreateLinkedTokenSource(appLifetime.ApplicationStopping);
 
@@ -86,7 +157,18 @@ class Lifetime: IHostedService, IDisposable
 			hddTask!.Wait();
 			cpuTask!.Wait();
 
-			// TODO: Set fans to full
+			ProcessStartInfo pInfo = new(config.ipmiTool);
+			Config.ipmiSetFanModeFull.All(x =>
+			{
+				pInfo.ArgumentList.Add(x);
+				return true;
+			});
+
+			Process? proc = Process.Start(pInfo);
+			if(proc == null)
+				log.LogCritical("Unable to execute ipmitool and set fans to full speed!");
+
+			proc?.WaitForExit();
 		});
 
 		appLifetime.ApplicationStopped.Register(() =>

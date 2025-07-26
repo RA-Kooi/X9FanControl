@@ -14,9 +14,6 @@ static class Config
 
 	public const int taskDelay             =  5; // in seconds
 
-	public const string ipmiSetFanSpeedPre = "raw 0x30 0x91 0x5A 0x03";
-	public const string HDDZone            = "0x10";
-	public const string CPUZone            = "0x11";
 	public const int fanStep               = 0x8;
 
 	public const int HDDInitSpeed          =  64; // duty cycle passed to ipmitool
@@ -26,4 +23,34 @@ static class Config
 	public const int CPUInitSpeed          =  96; // duty cycle passed to ipmitool
 	public const int CPUZoneTargetRPM      = 750;
 	public const int CPUDelta              =  25;
+
+	public const string HDDZone            = "0x10";
+	public const string CPUZone            = "0x11";
+	public static readonly string[] ipmiSetFanSpeed  =
+	{
+		"raw",
+		"0x30",
+		"0x91",
+		"0x5A",
+		"0x03"
+	};
+
+	public static readonly string[] ipmiGetFanMode =
+	{
+		"raw",
+		"0x30",
+		"0x45",
+		"0x00"
+	};
+
+	public const string ipmiFanModeFull = "01";
+
+	public static readonly string[] ipmiSetFanModeFull =
+	{
+		"raw",
+		"0x30",
+		"0x45",
+		"0x01",
+		"0x01"
+	};
 }
