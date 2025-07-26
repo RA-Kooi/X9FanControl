@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using LibCapNG;
+
 class Program
 {
 	static string? FindProgram(string[] paths, string program)
@@ -22,6 +24,25 @@ class Program
 
 	static int Main(string[] args)
 	{
+		cap_ng.CapngClear(CapngSelectT.CAPNG_SELECT_BOTH);
+
+		cap_ng.CapngUpdate(
+			CapngActT.CAPNG_ADD,
+			CapngTypeT.CAPNG_EFFECTIVE | CapngTypeT.CAPNG_PERMITTED,
+			(uint)Capabilities.FOWNER);
+
+		cap_ng.CapngUpdate(
+			CapngActT.CAPNG_ADD,
+			CapngTypeT.CAPNG_EFFECTIVE | CapngTypeT.CAPNG_PERMITTED,
+			(uint)Capabilities.DAC_READ_SEARCH);
+
+		cap_ng.CapngUpdate(
+			CapngActT.CAPNG_ADD,
+			CapngTypeT.CAPNG_INHERITABLE | CapngTypeT.CAPNG_BOUNDING_SET,
+			(uint)Capabilities.SYS_RAWIO);
+
+		cap_ng.CapngApply(CapngSelectT.CAPNG_SELECT_BOTH);
+
 		if(Config.HDDInitSpeed % Config.fanStep != 0)
 			throw new ApplicationException("HDDInitSpeed must be a multiple of fanSpeed");
 
