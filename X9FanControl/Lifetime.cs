@@ -158,6 +158,11 @@ class Lifetime: IHostedService, IDisposable
 			sensorTask!.Wait();
 			hddTask!.Wait();
 			cpuTask!.Wait();
+		});
+
+		appLifetime.ApplicationStopped.Register(() =>
+		{
+			log.LogInformation("Setting fans to full speed...");
 
 			ProcessStartInfo pInfo = new(config.ipmiTool);
 			Config.ipmiSetFanModeFull.All(x =>
@@ -171,11 +176,8 @@ class Lifetime: IHostedService, IDisposable
 				log.LogCritical("Unable to execute ipmitool and set fans to full speed!");
 
 			proc?.WaitForExit();
-		});
 
-		appLifetime.ApplicationStopped.Register(() =>
-		{
-			log.LogInformation("Done..");
+			log.LogInformation("Done...");
 		});
 
 		return Task.CompletedTask;
