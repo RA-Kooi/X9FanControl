@@ -1,0 +1,10 @@
+[Unit]
+Description=Fan control for SuperMicro X9 motherboards
+
+[Service]
+Type=simple
+ExecStart=/opt/X9FanControl/X9FanControl
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
