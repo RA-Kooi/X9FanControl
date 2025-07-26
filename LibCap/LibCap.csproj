@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<NoWarn>8981</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CppSharp" Version="1.1.5.3168" />
+	</ItemGroup>
+
+</Project>
