@@ -87,6 +87,9 @@ class CPUMonitor
 
 		await proc.WaitForExitAsync();
 
+		if(proc!.ExitCode != 0)
+			throw new ApplicationException("Error executing lsiutil, not root?");
+
 		StreamReader stdout = proc.StandardOutput;
 		while(!stdout.EndOfStream)
 		{

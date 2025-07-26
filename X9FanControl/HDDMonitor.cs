@@ -91,6 +91,9 @@ class HDDMonitor
 
 		await proc.WaitForExitAsync();
 
+		if(proc!.ExitCode != 0)
+			throw new ApplicationException("Error executing lsiutil, not root?");
+
 		List<string> disks = new(), SASAddrs = new();
 
 		StreamReader stdio = proc.StandardOutput;

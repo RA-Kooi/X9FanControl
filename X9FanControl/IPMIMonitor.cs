@@ -66,6 +66,9 @@ class IPMIMonitor
 			await pIT.WaitForExitAsync();
 		});
 
+		if(pIT!.ExitCode != 0)
+			throw new ApplicationException("Error executing ipmitool, not root?");
+
 		List<string> knownFans = new(), knownCPUs = new();
 
 		StreamReader stdout = pIT!.StandardOutput;
