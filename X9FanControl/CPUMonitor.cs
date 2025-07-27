@@ -36,8 +36,8 @@ class CPUMonitor
 
 		int hbaCount = await HBACount();
 		bool hasHBA = hbaCount > 0;
-		int hbaTimer = 30, lastHBATemp = -200;
-		bool rampForHBA = false, hbaIsRising;
+		int hbaTimer = 30, lastHBATemp = -200, noRampCounter = hasHBA ? 0 : 3;
+		bool hbaIsRising;
 
 		int lastCpuTemp = -200;
 		bool cpuIsRising;
@@ -45,7 +45,7 @@ class CPUMonitor
 		while(!c.IsCancellationRequested)
 		{
 			int hbaTemp = hasHBA ? await HBATemp(hbaCount) : 0;
-			hbaIsRising = hbaTemp > lastHBATemp;
+			hbaIsRising = hbaTemp >= lastHBATemp;
 
 			SensorData sensors = ipmiMonitor.SensorData;
 			int cpuTemp = sensors.CPUTemp;
@@ -55,14 +55,14 @@ class CPUMonitor
 			log.LogDebug($"CPU: {cpuTemp}°C\nHBA: {hbaTemp}°C");
 
 			bool aggressiveRampUp = cpuTemp > Config.maxCPUTemp && cpuIsRising;
-			if(!aggressiveRampUp && hbaTimer <= 0)
-				aggressiveRampUp = hasHBA ? hbaTemp > Config.maxHBATemp : false;
-
 			bool rampUp = cpuTemp > Config.targetCPUTemp && cpuIsRising;
-			if(!rampUp && hbaTimer <= 0)
+
+			if(hbaTimer <= 0 && hasHBA)
 			{
-				rampForHBA = hbaTemp > Config.targetHBATemp && hbaIsRising;
-				rampUp = hasHBA ? rampForHBA : false;
+				rampUp = hbaTemp > Config.targetHBATemp && hbaIsRising;
+				aggressiveRampUp = hbaTemp > Config.maxHBATemp;
+
+				noRampCounter = rampUp ? 0 : noRampCounter + 1;
 			}
 
 			int fanDelta = cpuFan - Config.CPUZoneTargetRPM;
@@ -71,7 +71,7 @@ class CPUMonitor
 			int newSpeed = fanSpeed;
 			if(rampUp)
 				newSpeed += Config.fanStep * (1 + 2 * aggressiveRampUp.ToInt());
-			else if(fanDelta >= Config.CPUDelta && !rampForHBA)
+			else if(fanDelta >= Config.CPUDelta && noRampCounter >= 3)
 				newSpeed -= Config.fanStep;
 
 			log.LogDebug($"Delta: {fanDelta}, config delta: {Config.CPUDelta}");
@@ -118,6 +118,7 @@ class CPUMonitor
 			hbaTimer -= Config.taskDelay;
 			if(hbaTimer < -Config.taskDelay)
 			{
+				log.LogDebug("Resetting HBA timer");
 				hbaTimer = 30;
 				lastHBATemp = hbaTemp;
 			}
