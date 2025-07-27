@@ -56,8 +56,9 @@ class HDDMonitor
 			int hddFan = sensors.HDDZoneRPM;
 
 			bool isRising = hddTemp > lastTemp;
-			bool aggressiveRampUp = hddTemp > Config.maxHDDTemp && isRising;
-			bool rampUp = hddTemp > Config.targetHDDTemp && isRising;
+			bool aggressiveRampUp = hddTemp > Config.maxHDDTemp;
+			bool rampUp = hddTemp > Config.targetHDDTemp
+				&& (isRising || aggressiveRampUp);
 
 			int fanDelta = hddFan - Config.HDDZoneTargetRPM;
 			rampUp = fanDelta < 0 ? true : rampUp;
