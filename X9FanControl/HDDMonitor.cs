@@ -47,13 +47,15 @@ class HDDMonitor
 
 			HDDs.Zip(temps).All(t =>
 			{
-				log.LogDebug($"{t.First}: {t.Second}°C");
+				log.LogTrace($"{t.First}: {t.Second}°C");
 				return true;
 			});
 
 			SensorData sensors = ipmiMonitor.SensorData;
 			int hddTemp = temps.Max();
 			int hddFan = sensors.HDDZoneRPM;
+
+			log.LogDebug($"HDD temp: {hddTemp}°C");
 
 			bool isRising = hddTemp > lastTemp;
 			bool aggressiveRampUp = hddTemp > Config.maxHDDTemp;
