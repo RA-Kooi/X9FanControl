@@ -16,11 +16,11 @@ static class Config
 
 	public const int fanStep               = 0x8;
 
-	public const int HDDInitSpeed          =  64; // duty cycle passed to ipmitool
+	public const int HDDInitSpeed          =  88; // duty cycle passed to ipmitool
 	public const int HDDZoneTargetRPM      = 825;
 	public const int HDDDelta              = 100;
 
-	public const int CPUInitSpeed          =  96; // duty cycle passed to ipmitool
+	public const int CPUInitSpeed          = 208; // duty cycle passed to ipmitool
 	public const int CPUZoneTargetRPM      = 750;
 	public const int CPUDelta              =  50;
 
