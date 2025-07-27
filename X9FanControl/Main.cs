@@ -109,6 +109,6 @@ class Program
 
 		host.Run();
 
-		return 0;
+		return Environment.ExitCode;
 	}
 }
