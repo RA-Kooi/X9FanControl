@@ -66,7 +66,7 @@ class HDDMonitor
 			int newSpeed = fanSpeed;
 			if(rampUp)
 				newSpeed += Config.fanStep * (1 + 2 * aggressiveRampUp.ToInt());
-			else if(fanDelta >= Config.HDDDelta)
+			else if(fanDelta >= Config.HDDDelta && hddTemp < lastTemp)
 				newSpeed -= Config.fanStep;
 
 			newSpeed = Math.Clamp(newSpeed, 0x0, 0x100);
