@@ -72,7 +72,10 @@ class CPUMonitor
 			if(rampUp)
 				newSpeed += Config.fanStep * (1 + 2 * aggressiveRampUp.ToInt());
 			else if(fanDelta >= Config.CPUDelta && noRampCounter >= 3)
+			{
 				newSpeed -= Config.fanStep;
+				noRampCounter = hasHBA ? 0 : 3;
+			}
 
 			log.LogDebug($"Delta: {fanDelta}, config delta: {Config.CPUDelta}");
 
