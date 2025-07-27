@@ -89,7 +89,7 @@ class HDDMonitor
 						pInfo.ArgumentList.Add(x);
 						return true;
 					});
-					pInfo.ArgumentList.Add(Config.CPUZone);
+					pInfo.ArgumentList.Add(Config.HDDZone);
 					pInfo.ArgumentList.Add($"0x{writeSpeed:X}");
 
 					Process? proc = Process.Start(pInfo);
